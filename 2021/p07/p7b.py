@@ -16,7 +16,13 @@ def run() -> None:
         for crab_x in crab_xs:
             total_fuel += (abs(pos - crab_x))*(abs(pos - crab_x) + 1) // 2
         if total_fuel <= min_total_fuel:
+            # Commented lines are just an experimental test to check if "mean" of crab position minimizes fuel spent
+            # It turns out it is almost true: Sometimes it is floor(mean) and sometimes it is ceil(mean) but round(mean)
+            # does not give always the right result (test with example.txt vs 7.txt).
+            # min_pos = pos
             min_total_fuel = total_fuel
+        # min_pos_exp = sum(crab_xs) / len(crab_xs)
+    # print(min_pos, min_pos_exp)
     print(min_total_fuel)
 
 
