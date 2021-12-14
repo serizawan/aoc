@@ -1,5 +1,8 @@
 # Advent of Code
 
-My solutions for the [advent of code](https://adventofcode.com/) problems.
+My solution scripts for the [advent of code](https://adventofcode.com/) problems.
 
-Note: Run with Python ≥ 3.8 - some scripts use the Walrus operator (:=).
+Tested with:
+- 2019: Python 3.8
+- 2020: Python 3.8
+- 2021: Python 3.9.1
