@@ -30,7 +30,7 @@ def parse(filename) -> (defaultdict[str, int], defaultdict[str, int], dict[str, 
 def run() -> None:
     if len(sys.argv) != 2:
         print("Missing input file. Run with: python {} [FILENAME].".format(sys.argv[0]), file=sys.stderr);
-        sys.exit();
+        sys.exit()
 
     letters, pairs, mapper = parse(sys.argv[1])
 
