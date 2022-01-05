@@ -60,7 +60,7 @@ def print_img(img):
 
 def run() -> None:
     if len(sys.argv) != 2:
-        logging.error("Missing input file. Run with: python {} [FILENAME].".format(sys.argv[0]), file=sys.stderr)
+        logging.error("Missing input file. Run with: python {} [FILENAME].".format(sys.argv[0]))
         sys.exit()
 
     iea, img = parse(sys.argv[1])
