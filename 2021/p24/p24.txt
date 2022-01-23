@@ -1,0 +1,38 @@
+This problem can be solved by hand.
+
+At each i step, (every inp operator which stores w_i and the following operator until the next inp is named a step here),
+the x, y, z variables are updated following the below formulas:
+x = (((z % 26) + beta_i) != w_i)  # x is 0 or 1
+y = (w_i + gamma_i) * x
+z = (z / alpha_i) * (25 * x + 1) + y  # alpha_i is 1 or 26
+
+Where alpha_i, beta_i and gamma_i are respectively the values associated with the operator at line +4, +5 and +15 after the
+inp operator.
+
+One can notice that when alpha is = 1, beta is >= 10 and hence x is ALWAYS 1.
+For these steps, it means that z is updated by:
+z = z * 26 + y
+
+here, z is getting larger.
+
+When alpha is = 26, beta is <= 0, there is an opportunity to make z smaller (which is our goal since we want it to be 0).
+
+Indeed, in order to prevent z from being multiplied by 26 we shall ensure that x is 0 which means that we want:
+((z % 26) + beta) == w_i
+
+It gives us a serie of equations which connects the w_i together.
+
+As there are exactly 7 div / 26 and 7 div / 1, we must grab each opportunity to make z decrease.
+
+We get the below set of equations:
+w1 - 8 = w14
+w2 + 7 = w13
+w11 - 1 = w12
+w9 - 5 = w10
+w5 + 2 = w8
+w6 + 3 = w7
+w3 - 3 = w4
+
+Using these we can find the highest and lowest MONAD that makes z = 0 by setting w_i to there highest or lowest possibles
+values between 1 and 9.
+
