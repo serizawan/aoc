@@ -1,8 +1,6 @@
 import sys
 
 
-LOWER_A_ORD = 97
-UPPER_A_ORD = 65
 N_LETTERS = 26
 
 
@@ -20,8 +18,8 @@ if __name__ == "__main__":
         shared = elf1.intersection(elf2).intersection(elf3)
         for s in shared:
             if s.lower() == s:
-                priorities_sum += (ord(s) - LOWER_A_ORD + 1)
+                priorities_sum += (ord(s) - ord('a') + 1)
             else:
-                priorities_sum += (ord(s) - UPPER_A_ORD + 1 + N_LETTERS)
+                priorities_sum += (ord(s) - ord('A') + 1 + N_LETTERS)
 
     print(priorities_sum)
