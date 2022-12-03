@@ -1,30 +1,41 @@
+from enum import Enum
 import sys
 
 
-SCORE_MAPPING = {
-    "A": 1,
-    "B": 2,
-    "C": 3
+ELF_MAPPING = {
+    "A": "ROCK",
+    "B": "PAPER",
+    "C": "SCISSORS"
+}
+
+RESULT_MAPPING = {
+    "X": "LOOSE",
+    "Y": "DRAW",
+    "Z": "WIN"
 }
 
 
+class Result(Enum):
+    LOOSE = 0
+    DRAW = 3
+    WIN = 6
+
+
+class Game(Enum):
+    # Value, Win against, Lose against
+    ROCK = (1, "SCISSORS", "PAPER")
+    PAPER = (2, "ROCK", "SCISSORS")
+    SCISSORS = (3, "PAPER", "ROCK")
+
+
 def vs(opponent_hand, result):
-    if result == "Y":
-        return SCORE_MAPPING[opponent_hand] + 3
-    if result == "X":
-        if opponent_hand == "A":
-            return 0 + SCORE_MAPPING["C"]
-        if opponent_hand == "B":
-            return 0 + SCORE_MAPPING["A"]
-        if opponent_hand == "C":
-            return 0 + SCORE_MAPPING["B"]
-    if result == "Z":
-        if opponent_hand == "A":
-            return 6 + SCORE_MAPPING["B"]
-        if opponent_hand == "B":
-            return 6 + SCORE_MAPPING["C"]
-        if opponent_hand == "C":
-            return 6 + SCORE_MAPPING["A"]
+    if result == Result.DRAW:
+        return opponent_hand.value[0] + Result.DRAW.value
+    if result == Result.LOOSE:
+        my_hand = Game[opponent_hand.value[1]]
+        return my_hand.value[0] + Result.LOOSE.value
+    my_hand = Game[opponent_hand.value[2]]
+    return my_hand.value[0] + Result.WIN.value
 
 
 if __name__ == "__main__":
@@ -38,6 +49,6 @@ if __name__ == "__main__":
     score = 0
     for line in lines:
         opponent_hand, result = line.split(" ")
-        score += vs(opponent_hand, result)
+        score += vs(Game[ELF_MAPPING[opponent_hand]], Result[RESULT_MAPPING[result]])
 
     print(score)
