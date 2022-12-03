@@ -1,35 +1,42 @@
+from enum import Enum
 import sys
 
 
-RPS_MAPPING = {
-    "A": "X",
-    "B": "Y",
-    "C": "Z"
+ELF_MAPPING = {
+    "A": "ROCK",
+    "B": "PAPER",
+    "C": "SCISSORS"
 }
 
-SCORE_MAPPING = {
-    "X": 1,
-    "Y": 2,
-    "Z": 3
+MY_MAPPING = {
+    "X": "ROCK",
+    "Y": "PAPER",
+    "Z": "SCISSORS"
 }
+
+
+class Game(Enum):
+    ROCK = 1
+    PAPER = 2
+    SCISSORS = 3
+
+    def __lt__(self, other):
+        winner1 = self == Game.ROCK and other == Game.PAPER
+        winner2 = self == Game.PAPER and other == Game.SCISSORS
+        winner3 = self == Game.SCISSORS and other == Game.ROCK
+        return winner1 or winner2 or winner3
 
 
 def vs(opponent_hand, my_hand):
-    opponent_hand = RPS_MAPPING[opponent_hand]
-    if opponent_hand == my_hand:
-        return 3 + SCORE_MAPPING[my_hand]
-    if opponent_hand == "X" and my_hand == "Y":
-        return 6 + SCORE_MAPPING[my_hand]
-    if opponent_hand == "Y" and my_hand == "X":
-        return 0 + SCORE_MAPPING[my_hand]
-    if opponent_hand == "Z" and my_hand == "X":
-        return 6 + SCORE_MAPPING[my_hand]
-    if opponent_hand == "X" and my_hand == "Z":
-        return 0 + SCORE_MAPPING[my_hand]
-    if opponent_hand == "Y" and my_hand == "Z":
-        return 6 + SCORE_MAPPING[my_hand]
-    if opponent_hand == "Z" and my_hand == "Y":
-        return 0 + SCORE_MAPPING[my_hand]
+    win_score = 6
+    draw_score = 3
+    loose_score = 0
+    total_score = my_hand.value
+    if opponent_hand < my_hand:
+        return total_score + win_score
+    if opponent_hand > my_hand:
+        return total_score + loose_score
+    return total_score + draw_score
 
 
 if __name__ == "__main__":
@@ -43,6 +50,7 @@ if __name__ == "__main__":
     score = 0
     for line in lines:
         opponent_hand, my_hand = line.split(" ")
+        opponent_hand, my_hand = Game[ELF_MAPPING[opponent_hand]], Game[MY_MAPPING[my_hand]]
         score += vs(opponent_hand, my_hand)
 
     print(score)
