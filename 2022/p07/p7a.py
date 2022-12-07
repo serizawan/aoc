@@ -6,23 +6,23 @@ DIR_SIZE_LIMIT = 100000
 
 
 # Note that this walkthrough works because commands follow a DFS pattern.
-def visit(lines, result_list):
+def visit(lines, dir_sizes):
     total_size = 0
     while lines:
         head = lines.pop(0)
         if head == "$ cd ..":
-            result_list.append(total_size)
-            return result_list, total_size
-        if extract_size := re.match("(\d*) .*", head):
+            dir_sizes.append(total_size)
+            return total_size, dir_sizes
+        elif extract_size := re.match("(\d*) .*", head):
             total_size += int(extract_size.group(1))
         elif re.match("\$ cd (.*)", head):
-            result, sub_total_size = visit(lines, result_list)
+            sub_total_size, dir_sizes = visit(lines, dir_sizes)
             total_size += sub_total_size
         else:
             # Skip useless ls and dir commands
             continue
-    result_list.append(total_size)
-    return result_list, total_size
+    dir_sizes.append(total_size)
+    return total_size, dir_sizes
 
 
 if __name__ == "__main__":
@@ -33,5 +33,5 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         lines = f.read().splitlines()
 
-    result_list, total_size = visit(lines, [])
-    print(sum([dir_size for dir_size in result_list if dir_size <= DIR_SIZE_LIMIT]))
+    total_size, dir_sizes = visit(lines, [])
+    print(sum([dir_size for dir_size in dir_sizes if dir_size <= DIR_SIZE_LIMIT]))
