@@ -1,9 +1,11 @@
+import operator
 import re
 import sys
 
 
 N_ROUNDS = 10000
 MONKEY_DESC_N_LINES = 6
+OPS = {"+": operator.add, "*": operator.mul}
 
 
 class Item:
@@ -17,8 +19,12 @@ class Operator:
         self.right_value = right_value
 
     def apply(self, left_value):
+        if self.right_value == "left_value":
+            return OPS[self.op](left_value, left_value)
+        return OPS[self.op](left_value, self.right_value)
+        # Using eval slows down by a 15 to 20 factor (4s vs 70s total runtime)
         # Requires an additional eval because eval("3 * 'left_value'") with left_value = 2 can be interpreted as: 222
-        return eval(f"{left_value} {self.op} {eval(str(self.right_value))}")
+        # return eval(f"{left_value} {self.op} {eval(str(self.right_value))}")
 
 
 class Monkeys:
@@ -69,9 +75,6 @@ class Monkey:
             self.test()
             self.throw()
 
-    def __str__(self):
-        return f"{self.current_item=}, {self.to=}, {self.monkey_id=}, {self.items=}"
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -88,7 +91,7 @@ if __name__ == "__main__":
         lines_id = [(MONKEY_DESC_N_LINES + 1) * i + j for j in range(MONKEY_DESC_N_LINES)]
         monkey_id = int(re.search(r'\d+', lines[lines_id[0]]).group())
         # It is ok not to store mods value here as the first operate will take responsibility for it.
-        items = [Item([j for _ in range(n_monkeys)]) for j in re.findall(r'\d+', lines[lines_id[1]])]
+        items = [Item([int(j) for _ in range(n_monkeys)]) for j in re.findall(r'\d+', lines[lines_id[1]])]
         capture_right_value_if_number = re.search(r'\d+', lines[lines_id[2]])
         right_value = int(capture_right_value_if_number.group()) if capture_right_value_if_number else "left_value"
         op = re.search(r'[\+\*]', lines[lines_id[2]]).group()
