@@ -10,6 +10,8 @@ OPS = {"+": operator.add, "*": operator.mul}
 
 class Item:
     def __init__(self, worry_level_mods):
+        # Note that here we stored the worry_level modulo each monkey.div attribute.
+        # We may have improved code simplicity by storing only worry_level modulo the monkey.divs product.
         self.worry_level_mods = worry_level_mods
 
 
