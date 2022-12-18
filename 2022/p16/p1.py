@@ -4,6 +4,7 @@ import sys
 
 # Explore with BFS
 # This implementation works but it is quite greedy (even for sample input it takes several seconds).
+# IT takes several (10) minutes for the in.txt input.
 def explore(start_valve, graph, time, opened, from_valve):
     opened_pressure, closed_pressure = 0, 0
     max_pressure = 0
@@ -11,11 +12,11 @@ def explore(start_valve, graph, time, opened, from_valve):
     if time < 3:
         return max_pressure
     for valve, pressure in graph[start_valve]:
-        # Don't come back if a valve wasn't opened, it is a certainly a suboptimal move
+        # Don't come back if a valve wasn't opened, it is certainly a suboptimal move
         if valve != from_valve:
             # Move and don't open the valve
             closed_pressure = explore(valve, graph, time - 1, opened, start_valve)
-        # Don't open a valve if it doesn't provide pressure, it is a certainly a suboptimal move
+        # Don't open a valve if it doesn't provide pressure, it is certainly a suboptimal move
         if valve not in opened and pressure:
             opened_copy = opened.copy()
             opened_copy.add(valve)
