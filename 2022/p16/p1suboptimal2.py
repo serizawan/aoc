@@ -28,8 +28,27 @@ def compute_dijkstra_shortest_paths(graph, start_node):
     return visited
 
 
+# Another sub-optimal algorithm where we go the closest neighbors and either open or let it close it before we move on.
+# We also don't come back from a closed neighbor but it is not legit to ignore this situation.
 def explore(start_valve, graph, time, opened, from_closed):
     max_pressure = 0
+    # Needs at least 3 remaining minute to travel, open a valve and get pressure for it
+    # Also return if there are no more valves to open.
+    if time < 3 or len(opened) == len(valves_with_non_zero_rate):
+        return max_pressure
+    shortest_paths = compute_dijkstra_shortest_paths(graph, start_valve)
+    targeted_valves = list(valves_with_non_zero_rate - opened - {start_valve} - {from_closed})
+    if targeted_valves:
+        closest_valves = [valve for valve in targeted_valves if shortest_paths[valve] == min([shortest_paths[v] for v in targeted_valves])]
+        for valve in closest_valves:
+            opened_copy = opened.copy()
+            opened_copy.add(valve)
+            opened_pressure = explore(valve, graph, time - shortest_paths[valve] - 1, opened_copy, None) + valves_to_rates[valve] * (time - shortest_paths[valve] - 1)
+            closed_pressure = explore(valve, graph, time - shortest_paths[valve], opened, start_valve)
+            max_pressure = max(max_pressure, opened_pressure, closed_pressure)
+    # There is a single remaining valve and we are on it, so open it.
+    else:
+        max_pressure = valves_to_rates[start_valve] * (time - 1)
     return max_pressure
 
 
