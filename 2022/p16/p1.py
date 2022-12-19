@@ -2,26 +2,28 @@ import re
 import sys
 
 
-# Explore with BFS
+# Explore (almost all paths) with BFS (brute-force attempt).
 # This implementation works but it is quite greedy (even for sample input it takes several seconds).
-# IT takes several (10) minutes for the in.txt input.
+# It takes several (2) minutes for the in.txt input.
 def explore(start_valve, graph, time, opened, from_valve):
     opened_pressure, closed_pressure = 0, 0
     max_pressure = 0
     # Needs at least 3 remaining minute to travel, open a valve and get pressure for it
-    if time < 3:
+    # Also return if there are no more valves to open.
+    if time < 3 or len(opened) == len(valves_to_rates):
         return max_pressure
     for valve, pressure in graph[start_valve]:
-        # Don't come back if a valve wasn't opened, it is certainly a suboptimal move
+        # Try not to come back (always go forward, it may be suboptimal but would reduce complexity, worth trying).
+        # Not using this condition, the script still runs in "reasonable" time as it completes in 10 mins.
         if valve != from_valve:
             # Move and don't open the valve
             closed_pressure = explore(valve, graph, time - 1, opened, start_valve)
-        # Don't open a valve if it doesn't provide pressure, it is certainly a suboptimal move
-        if valve not in opened and pressure:
-            opened_copy = opened.copy()
-            opened_copy.add(valve)
-            # Move and open the valve
-            opened_pressure = pressure * (time - 2) + explore(valve, graph, time - 2, opened_copy, from_valve)
+            # Don't open a valve if it doesn't provide pressure, it is certainly a suboptimal move
+            if valve not in opened and pressure:
+                opened_copy = opened.copy()
+                opened_copy.add(valve)
+                # Move and open the valve
+                opened_pressure = pressure * (time - 2) + explore(valve, graph, time - 2, opened_copy, from_valve)
 
         max_pressure = max(max_pressure, opened_pressure, closed_pressure)
     return max_pressure
