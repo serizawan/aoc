@@ -28,8 +28,18 @@ def compute_dijkstra_shortest_paths(graph, start_node):
     return visited
 
 
-def explore(start_valve, graph, time, opened, from_closed):
+def explore(start_valve, graph, time, opened):
+    if time < 3 or len(opened) == len(valves_with_non_zero_rate):
+        return 0
+
     max_pressure = 0
+    for valve in valves_with_non_zero_rate - opened - {start_valve}:
+        remaining_time = time - valve_to_shortest_paths[start_valve][valve] - 1
+        opened_copy = opened.copy()
+        opened_copy.add(valve)
+        pressure = explore(valve, graph, remaining_time, opened_copy) + remaining_time * valves_to_rates[valve]
+        max_pressure = max(max_pressure, pressure)
+
     return max_pressure
 
 
@@ -58,9 +68,11 @@ if __name__ == "__main__":
         graph[from_valve] = [(v, valves_to_rates[v]) for v in to_valve]
 
     start_valve = "AA"
+    valve_to_shortest_paths = {valve: compute_dijkstra_shortest_paths(graph, valve) for valve in valves_with_non_zero_rate}
+    valve_to_shortest_paths[start_valve] = compute_dijkstra_shortest_paths(graph, start_valve)
+
     time = 30
     opened = set()
-    from_valve = None
-    max_pressure = explore(start_valve, graph, time, opened, None)
+    max_pressure = explore(start_valve, graph, time, opened)
     print(max_pressure)
 
