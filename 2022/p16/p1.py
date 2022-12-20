@@ -33,6 +33,8 @@ def explore(start_valve, graph, time, opened):
         return 0
 
     max_pressure = 0
+    # Move only to an unopened valve which has a > 0 rate. Try all permutations even though there are 14! since we will
+    # run out of time much before we reach the last valve.
     for valve in set(valves_to_rates.keys()) - opened - {start_valve}:
         remaining_time = time - valve_to_shortest_paths[start_valve][valve] - 1
         opened_copy = opened.copy()
