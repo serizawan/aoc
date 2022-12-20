@@ -29,11 +29,11 @@ def compute_dijkstra_shortest_paths(graph, start_node):
 
 
 def explore(start_valve, graph, time, opened):
-    if time < 3 or len(opened) == len(valves_with_non_zero_rate):
+    if time < 3 or len(opened) == len(set(valves_to_rates.keys())):
         return 0
 
     max_pressure = 0
-    for valve in valves_with_non_zero_rate - opened - {start_valve}:
+    for valve in set(valves_to_rates.keys()) - opened - {start_valve}:
         remaining_time = time - valve_to_shortest_paths[start_valve][valve] - 1
         opened_copy = opened.copy()
         opened_copy.add(valve)
@@ -53,22 +53,20 @@ if __name__ == "__main__":
         lines = f.read().splitlines()
 
     valves_to_rates = {}
-    valves_with_non_zero_rate = set()
     for line in lines:
         captured_values = re.search(r"Valve ([A-Z]{2}) has flow rate=(\d+);", line)
         from_valve, rate = captured_values[1], int(captured_values[2])
-        valves_to_rates[from_valve] = rate
         if rate:
-            valves_with_non_zero_rate.add(from_valve)
+            valves_to_rates[from_valve] = rate
 
     graph = {}
     for line in lines:
         captured_values = re.search(r"Valve ([A-Z]{2}) has flow rate=(\d+); tunnels? leads? to valves? (.*)", line)
         from_valve, rate, to_valve = captured_values[1], captured_values[2], captured_values[3].split(", ")
-        graph[from_valve] = [(v, valves_to_rates[v]) for v in to_valve]
+        graph[from_valve] = [(v, valves_to_rates[v]) if v in valves_to_rates else (v, 0) for v in to_valve]
 
     start_valve = "AA"
-    valve_to_shortest_paths = {valve: compute_dijkstra_shortest_paths(graph, valve) for valve in valves_with_non_zero_rate}
+    valve_to_shortest_paths = {valve: compute_dijkstra_shortest_paths(graph, valve) for valve in set(valves_to_rates.keys())}
     valve_to_shortest_paths[start_valve] = compute_dijkstra_shortest_paths(graph, start_valve)
 
     time = 30
