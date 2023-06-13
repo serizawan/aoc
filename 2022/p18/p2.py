@@ -16,12 +16,20 @@ class Directions(Enum):
     DOWN = (0, 0, -1)
 
 
+class Region:
+    def __init__(self, x1, x2, y1, y2, z1, z2):
+        self.x1, self.x2 = x1, x2
+        self.y1, self.y2 = y1, y2
+        self.z1, self.z2 = z1, z2
+
+
 class Item:
     def __init__(self, x, y, z):
         self.x = x
         self.y = y
         self.z = z
 
+    # Note that an air instance and a droplet instance are equal if they occupy the same position in space.
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y and self.z == other.z
 
@@ -32,13 +40,18 @@ class Item:
     def neighbors(self):
         _neighbors = set()
         for direction in Directions:
-            droplet = Droplet(self.x + direction.value[0], self.y + direction.value[1], self.z + direction.value[2])
-            _neighbors.add(droplet)
+            item = Item(self.x + direction.value[0], self.y + direction.value[1], self.z + direction.value[2])
+            _neighbors.add(item)
 
         return _neighbors
 
-    def inside(self, region):
-        return region[0] <= self.x <= region[1] and region[2] <= self.y <= region[3] and region[4] <= self.z <= region[5]
+    def is_in(self, region):
+        return (region.x1 <= self.x <= region.x2 and
+                region.y1 <= self.y <= region.y2 and
+                region.z1 <= self.z <= region.z2)
+
+    def __str__(self):
+        return f"{self.x=}, {self.y=}, {self.z=}"
 
 
 class Air(Item):
@@ -49,44 +62,65 @@ class Droplet(Item):
     pass
 
 
-class Border:
-    def __init__(self, droplets_to_counts):
-        self.inside_droplets = set()
-        self.droplets_to_counts = droplets_to_counts
-        self.free_air = set()
-        self.trapped_air = set()
+class ItemsCloud:
+    def __init__(self, items):
+        self.items = set(items)
 
-    def update(self, droplet):
-        self.inside_droplets.add(droplet)
-        # Droplet is always in droplets_to_counts at this point since we accessed it as droplets_to_counts[droplet] on
-        # a defaultdict!
-        self.droplets_to_counts.pop(droplet)
-        for neighbor in droplet.neighbors:
-            if neighbor not in self.inside_droplets:
-                self.droplets_to_counts[neighbor] += 1
+    def update(self, item, border):
+        # Item is always in border at this point since we accessed it as border[item] on a defaultdict!
+        border.pop(item)
+        for neighbor in item.neighbors:
+            border[neighbor] += 1
 
-    def expand(self, airs, region):
-        airs_copy = deepcopy(airs)
-        for air in airs_copy:
-            for neighbor in air.neighbors:
-                if neighbor.inside(region) and neighbor not in self.inside_droplets:
-                    airs.add(neighbor)
+    def expand(self, items, region):
+        items_copy = deepcopy(items)
+        for item in items_copy:
+            for neighbor in item.neighbors:
+                if neighbor.is_in(region) and neighbor not in self.items:
+                    items.add(neighbor)
 
-        if len(airs) == len(airs_copy):
+        if len(items) == len(items_copy):
             return
 
-        self.expand(airs, region)
+        self.expand(items, region)
 
-    def compute_trapped_air(self):
-        _inside_droplets = self.inside_droplets
-        min_x, max_x = min(droplet.x for droplet in _inside_droplets), max(droplet.x for droplet in _inside_droplets)
-        min_y, max_y = min(droplet.y for droplet in _inside_droplets), max(droplet.y for droplet in _inside_droplets)
-        min_z, max_z = min(droplet.z for droplet in _inside_droplets), max(droplet.z for droplet in _inside_droplets)
-        region = (min_x - 1, max_x + 1, min_y - 1, max_y + 1, min_z - 1, max_z + 1)
-        region_items = set(Item(i, j, k) for i in range(region[0], region[1] + 1) for j in range(region[2], region[3] + 1) for k in range(region[4], region[5] + 1))
-        self.free_air = {Air(max_x + 1, max_y + 1, max_z + 1)}
-        self.expand(self.free_air, region)
-        self.trapped_air = region_items - self.inside_droplets - self.free_air
+    """
+    Compute trapped items.
+    Trapped items are identified by:
+    1) Taking a region larger (by 1 in all directions) than the items occupied space
+    2) Computing non-trapped items (pick a region border item which is free and expand it inside the region until it 
+    remains identical. The expanded item set captures all "free" (outer) items within the region.
+    3) Subtract given items and free items from region. The remaining set gathers the trapped items.
+    
+    Note: Expanding the item until it cannot anymore is the costly operation of this problem.
+    There is space to optimize the behavior by expanding only non-yet expanded items at each round ("border" items).
+    Example: https://github.com/hyper-neutrino/advent-of-code/blob/main/2022/day18p2.py#L41
+    """
+    def compute_trapped(self):
+        _items = self.items
+        min_x, max_x = min(item.x for item in _items), max(item.x for item in _items)
+        min_y, max_y = min(item.y for item in _items), max(item.y for item in _items)
+        min_z, max_z = min(item.z for item in _items), max(item.z for item in _items)
+        region = Region(min_x - 1, max_x + 1, min_y - 1, max_y + 1, min_z - 1, max_z + 1)
+        region_items = set()
+        for i in range(region.x1, region.x2 + 1):
+            for j in range(region.y1, region.y2 + 1):
+                for k in range(region.z1, region.z2 + 1):
+                    region_items.add(Item(i, j, k))
+        # To identify the o
+        outside = {Item(max_x + 1, max_y + 1, max_z + 1)}
+        self.expand(outside, region)
+        return region_items - self.items - outside
+
+    def compute_surface_area(self):
+        surface_area = 0
+        border = defaultdict(lambda: 0)
+        for item in self.items:
+            # Subtract self.border[item] twice (once for the current item hidden faces and once for the neighbors
+            # hidden faces).
+            surface_area += CUBE_FACES - 2 * border[item]
+            self.update(item, border)
+        return surface_area
 
 
 if __name__ == "__main__":
@@ -103,24 +137,13 @@ if __name__ == "__main__":
         droplets.append(Droplet(*(int(i) for i in line.split(","))))
 
     # Compute the total droplets surface area.
-    surface_area = 0
-    border = Border(defaultdict(lambda: 0))
-    for droplet in droplets:
-        # Remove border.droplets_to_counts[droplet] twice (once for the current droplet and once for the neighbors).
-        surface_area += CUBE_FACES - 2 * border.droplets_to_counts[droplet]
-        border.update(droplet)
+    droplet_items_cloud = ItemsCloud(droplets)
+    droplet_surface_area = droplet_items_cloud.compute_surface_area()
 
     # Compute the trapped air surface area.
-    border.compute_trapped_air()
-    air_surface_area = 0
-    air_border = Border(defaultdict(lambda: 0))
-    for air in border.trapped_air:
-        air_surface_area += CUBE_FACES - 2 * air_border.droplets_to_counts[air]
-        air_border.update(air)
+    air_items_cloud = ItemsCloud(droplet_items_cloud.compute_trapped())
+    air_surface_area = air_items_cloud.compute_surface_area()
 
-    # The external surface area is given by the difference between total droplets surface area and trapped air surface
+    # The droplets outside surface area is given by the difference between droplets surface area and trapped air surface
     # area.
-    print(surface_area - air_surface_area)
-
-
-
+    print(droplet_surface_area - air_surface_area)
