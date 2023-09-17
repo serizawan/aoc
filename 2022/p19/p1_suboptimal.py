@@ -30,6 +30,8 @@ class RobotTypes:
 
 
 class RobotsTarget:
+    # Considering the allocated time and the robot costs, it is never relevant to build more than 10 robots of the same
+    # type.
     MAX_ROBOTS_PER_TYPE = 10
 
     def __init__(self, ore_robots, clay_robots, obsidian_robots):
@@ -258,6 +260,7 @@ if __name__ == "__main__":
             is_reached = robot_factory.simulate(robots_target)
             max_geode_stock = max(robot_factory.resources.geode_stock, max_geode_stock)
             is_over = robots_target.next(is_reached)
+        print(max_geode_stock)
         result += int(blueprint_id) * max_geode_stock
 
     print(result)
