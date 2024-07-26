@@ -10,16 +10,14 @@ ALLOCATED_TIME = 24
 
 """
 This version simulates geode productions for all possible permutations of buildable robots sets (in the allocated time)
-using a DFS algorithm.
+using a DFS algorithm. A caching mechanism allows to improve performances by preventing the DFS from exploring known
+states.
 
 Despite some thresholds have been put on the number of buildable robots per type have been set (example: Considering the
 Ore robot costs in the input blueprints, it never makes sense to build more than 4 Ore robots to reach the maximum geode
 production as no robots costs more than 4 ores. Having more Ore robots would spoil resources with over-production of 
-this metal), this algorithm version is too greedy and cannot be computed in a reasonable time (even not in days).
-
-With 4 Ore Robots, 8 Clay Robots, 4 Obsidian Robots and 2 Geode Robots (which is a buildable set for some blueprints),
-there are more than 18! / (4! * 8! * 4! * 2!) = 137 837 700 possible permutations which wouldn't be computable in a
-reasonable time (maximum a few minutes).
+this metal), the computation is longer than the expected problem time (up to a few minutes) but it is still computable
+in a few hours.
 """
 
 
@@ -94,12 +92,25 @@ class RobotFactory:
             return self.resources.ore_stock >= self.blue_print.geode_robot_cost.ore and self.resources.obsidian_stock >= self.blue_print.geode_robot_cost.obsidian
         return False
 
-    def simulate(self, remaining_time, max_geode_stock):
+    # Run a DFS algorithm to simulate the geode productions. Use a cache to store the maximum geodes production for any
+    # step in the path when all downstream paths are completed, this optimizes the computation when the algorithm
+    # meets again a known situation.
+    def simulate(self, remaining_time, max_geode_stock, cache):
+        key = (remaining_time, *self.robots.types_counts(), *self.resources.stocks)
+        if key in cache.keys():
+            return cache[key]
+
+        # Note statement is only useful for the first simulate invocation to initiate each simulation:
+        # - Start by building an Ore robot
+        # - Start by building a Clay robot
+        # - Start by building an Obsidian robot (dummy)
+        # - Start by building a Geode robot (dummy)
         if not self.next_robot_type_to_make:
             for robot_type in RobotTypes:
                 robot_factory = deepcopy(self)
                 robot_factory.next_robot_type_to_make = robot_type
-                max_geode_stock = max(robot_factory.simulate(remaining_time, max_geode_stock), max_geode_stock)
+                max_geode_stock = max(robot_factory.resources.geode_stock, max_geode_stock)
+                max_geode_stock = max(robot_factory.simulate(remaining_time, max_geode_stock, cache), max_geode_stock)
             return max_geode_stock
 
         while remaining_time:
@@ -113,12 +124,15 @@ class RobotFactory:
                         continue
                     robot_factory = deepcopy(self)
                     robot_factory.next_robot_type_to_make = robot_type
-                    max_geode_stock = robot_factory.simulate(remaining_time, max(robot_factory.resources.geode_stock, max_geode_stock))
+                    max_geode_stock = max(robot_factory.resources.geode_stock, max_geode_stock)
+                    max_geode_stock = max(robot_factory.simulate(remaining_time, max_geode_stock, cache), max_geode_stock)
                 return max_geode_stock
             else:
                 self.resources.add(self.robots.produce())
 
-        return max(self.resources.geode_stock, max_geode_stock)
+        max_geode_stock = max(self.resources.geode_stock, max_geode_stock)
+        cache[key] = max_geode_stock
+        return max_geode_stock
 
 
 class Resources:
@@ -139,6 +153,10 @@ class Resources:
         self.clay_stock += resources.clay_stock
         self.obsidian_stock += resources.obsidian_stock
         self.geode_stock += resources.geode_stock
+
+    @property
+    def stocks(self):
+        return [self.ore_stock, self.clay_stock, self.obsidian_stock, self.geode_stock]
 
 
 class Robot:
@@ -165,7 +183,6 @@ class OreRobot(Robot):
 class ClayRobot(Robot):
     CLAY_PRODUCTION = 1
     MAX_ROBOT_COUNT = math.inf
-    # MAX_ROBOT_COUNT = 8
 
     def produce(self):
         return Resources(0, self.CLAY_PRODUCTION, 0, 0)
@@ -174,7 +191,6 @@ class ClayRobot(Robot):
 class ObsidianRobot(Robot):
     OBSIDIAN_PRODUCTION = 1
     MAX_ROBOT_COUNT = math.inf
-    # MAX_ROBOT_COUNT = 4
 
     def produce(self):
         return Resources(0, 0, self.OBSIDIAN_PRODUCTION, 0)
@@ -203,6 +219,19 @@ class Robots:
             elif robot_type == RobotTypes.GEODE_TYPE and isinstance(robot, GeodeRobot):
                 count += 1
         return count
+
+    def types_counts(self):
+        counts = [0] * len(RobotTypes.__members__)
+        for robot in self.robots_set:
+            if isinstance(robot, OreRobot):
+                counts[0] += 1
+            elif isinstance(robot, ClayRobot):
+                counts[1] += 1
+            elif isinstance(robot, ObsidianRobot):
+                counts[2] += 1
+            elif isinstance(robot, GeodeRobot):
+                counts[3] += 1
+        return counts
 
     def produce(self):
         resources = Resources(0, 0, 0, 0)
@@ -239,8 +268,7 @@ if __name__ == "__main__":
             Resources(0, 0, 0, 0),
             None,
         )
-        max_geode_stock = robot_factory.simulate(ALLOCATED_TIME, 0)
-        print(max_geode_stock)
+        max_geode_stock = robot_factory.simulate(ALLOCATED_TIME, 0, {})
         result += int(blueprint_id) * max_geode_stock
 
     print(result)
