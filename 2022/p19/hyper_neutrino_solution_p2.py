@@ -3,7 +3,11 @@ import re
 """
 This script source is: https://github.com/hyper-neutrino/advent-of-code/blob/main/2022/day19p2.py
 
-Note that even without cache, this algorithm completes in a reasonable time!
+Note that even without cache, this algorithm completes in a reasonable time (a couple of minutes).
+With in.txt:
+When cache is enabled and amount optimization is enabled: DFS is invoked 11M.
+When cache is enabled but amount optimization is disabled: DFS is invoked 41M.
+When cache is disabled: DFS is invoked 350M.
 """
 
 def dfs(bp, maxspend, cache, time, bots, amt):
@@ -34,6 +38,10 @@ def dfs(bp, maxspend, cache, time, bots, amt):
             for ramt, rtype in recipe:
                 amt_[rtype] -= ramt
             bots_[btype] += 1
+            # We can "throw" extra stock of a given resource when we have "too much" ("too much" means more
+            # than we would need if we had to spend the maximum resource cost on each time tick). This stock
+            # adjustement doesn't affect production (as we spoil only unspendable stock) but improve cache hitting
+            # and hence performance. We named this strategy "amount optimization".
             for i in range(3):
                 amt_[i] = min(amt_[i], maxspend[i] * remtime)
             maxval = max(maxval, dfs(bp, maxspend, cache, remtime, bots_, amt_))

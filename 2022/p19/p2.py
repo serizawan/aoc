@@ -20,7 +20,6 @@ this metal), the computation is longer than the expected problem time (up to a f
 in a few days.
 """
 
-
 class Cost:
     def __init__(self, ore, clay, obsidian, geode):
         self.ore = ore
@@ -115,6 +114,7 @@ class RobotFactory:
 
         while remaining_time:
             remaining_time -= 1
+            # Note that we could calculate the exact waiting time before producing a new robot without iterating.
             if self.has_enough(self.next_robot_type_to_make):
                 robot = self.make(self.next_robot_type_to_make)
                 self.resources.add(self.robots.produce())
@@ -122,6 +122,14 @@ class RobotFactory:
                 for robot_type in RobotTypes:
                     if self.robots.count(robot_type) >= RobotTypes.get_robot_class_from_robot_type(robot_type).MAX_ROBOT_COUNT:
                         continue
+                    # We can "throw" extra stock of a given resource when we have "too much" ("too much" means more
+                    # than we would need if we had to spend the maximum resource cost on each time tick). This stock
+                    # adjustement doesn't affect production (as we spoil only unspendable stock) but improve cache hitting
+                    # and hence performance.
+                    for i in range(3):
+                        self.resources.ore_stock = min(self.resources.ore_stock, max_ore_cost * remaining_time)
+                        self.resources.clay_stock = min(self.resources.clay_stock, max_clay_cost * remaining_time)
+                        self.resources.obsidian_stock = min(self.resources.obsidian_stock, max_obsidian_cost * remaining_time)
                     robot_factory = deepcopy(self)
                     robot_factory.next_robot_type_to_make = robot_type
                     max_geode_stock = max(robot_factory.resources.geode_stock, max_geode_stock)
@@ -182,7 +190,7 @@ class OreRobot(Robot):
 
 class ClayRobot(Robot):
     CLAY_PRODUCTION = 1
-    MAX_ROBOT_COUNT = 10
+    MAX_ROBOT_COUNT = math.inf
 
     def produce(self):
         return Resources(0, self.CLAY_PRODUCTION, 0, 0)
@@ -254,6 +262,7 @@ if __name__ == "__main__":
         blueprint_id, *costs = re.findall(r"\d+", line)
         costs = [int(cost) for cost in costs]
         remaining_time = ALLOCATED_TIME
+        max_ore_cost, max_clay_cost, max_obsidian_cost = max(costs[0], costs[1], costs[2], costs[4]), costs[3], costs[5]
         blue_print = BluePrint(
             blueprint_id,
             Cost(costs[0], 0, 0, 0),
