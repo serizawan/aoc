@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+
 class Node:
     def __init__(self, id, operator, left, right, value):
         self.id = id
@@ -11,27 +12,54 @@ class Node:
     def __repr__(self):
         return f"{self.id}: {self.left} {self.operator} {self.right} = {self.value}"
 
-    def eval(self, nodes_by_id):
+
+class BinaryTree:
+    def __init__(self):
+        self.nodes = {}
+
+    @property
+    def root(self):
+        return self.nodes["root"]
+
+    def add(self, node):
+        self.nodes[node.id] = node
+
+    def get_humn(self):
+        return self.nodes["humn"]
+
+    def set_humn(self, v):
+        self.nodes["humn"].value = v
+
+    def get_node(self, id):
+        return self.nodes[id]
+
+    def get_node_left(self, id):
+        return self.get_node(self.get_node(id).left)
+
+    def get_node_right(self, id):
+        return self.get_node(self.get_node(id).right)
+
+    def eval(self, node):
         # If value is already known, return it.
-        if self.value:
-            return self.value
+        if node.value:
+            return node.value
 
         # Otherwise Compute it.
-        if self.operator == "+":
-            self.value = nodes_by_id[self.left].eval(nodes_by_id) + nodes_by_id[self.right].eval(nodes_by_id)
-        elif self.operator == "-":
-            self.value = nodes_by_id[self.left].eval(nodes_by_id) - nodes_by_id[self.right].eval(nodes_by_id)
-        if self.operator == "*":
-            self.value = nodes_by_id[self.left].eval(nodes_by_id) * nodes_by_id[self.right].eval(nodes_by_id)
+        if node.operator == "+":
+            node.value = self.eval(self.get_node(node.left)) + self.eval(self.get_node(node.right))
+        elif node.operator == "-":
+            node.value = self.eval(self.get_node(node.left)) - self.eval(self.get_node(node.right))
+        elif node.operator == "*":
+            node.value = self.eval(self.get_node(node.left)) * self.eval(self.get_node(node.right))
         # ZeroDivisionError may hypothetically occur but we don't handle it as it doesn't for the given input.
-        if self.operator == "/":
-            self.value = nodes_by_id[self.left].eval(nodes_by_id) / nodes_by_id[self.right].eval(nodes_by_id)
+        elif node.operator == "/":
+            node.value = self.eval(self.get_node(node.left)) / self.eval(self.get_node(node.right))
 
-        return self.value
+        return node.value
 
 
 if __name__ == "__main__":
-    nodes_by_id= {}
+    op_tree = BinaryTree()
     for line in open(0).read().splitlines():
         id, expr = line.split(":")
         expr = expr.replace(" ", "")
@@ -43,37 +71,26 @@ if __name__ == "__main__":
             operator = expr[4]
             right = expr[5:]
         node = Node(id, operator, left, right, value)
-        nodes_by_id[id] = node
+        op_tree.add(node)
 
     # Searching the solution linearly is not reasonable in time as the solution very large.
     # We use a dichotomy to improve performances as the function is monotonic - either f(x) = k * x or k / x).
-    nodes_by_id_left, nodes_by_id_right = deepcopy(nodes_by_id), deepcopy(nodes_by_id)
-    nodes_by_id_center = deepcopy(nodes_by_id)
+    op_tree_cp = deepcopy(op_tree)
 
     # Pick the bounds enough far so that the solution lies in-between.
     humn_left, humn_right = 0, 1_000_000_000_000_000
-    humn_center = (humn_left + humn_right) // 2
 
-    nodes_by_id_left["humn"].value, nodes_by_id_right["humn"].value = humn_left, humn_right
-    nodes_by_id_center["humn"].value = humn_center
+    op_tree_cp.set_humn((humn_left + humn_left) // 2)
+    op_tree_cp.eval(op_tree_cp.root)
 
-    root_node_left, root_node_right = nodes_by_id_left["root"], nodes_by_id_right["root"]
-    root_node_center = nodes_by_id_center["root"]
+    while op_tree_cp.get_node_left(op_tree_cp.root.id).value != op_tree_cp.get_node_right(op_tree_cp.root.id).value:
+        if op_tree_cp.get_node_left(op_tree_cp.root.id).value > op_tree_cp.get_node_right(op_tree_cp.root.id).value:
+            humn_left = op_tree_cp.get_humn().value
+        else:
+            humn_right = op_tree_cp.get_humn().value
 
-    root_node_left.eval(nodes_by_id_left), root_node_right.eval(nodes_by_id_right)
-    root_node_center.eval(nodes_by_id_center)
-    while nodes_by_id_center[root_node_center.left].value != nodes_by_id_center[root_node_center.right].value:
-        if nodes_by_id_center[root_node_center.left].value > nodes_by_id_center[root_node_center.right].value:
-            nodes_by_id_left = nodes_by_id_center
-            root_node_left = nodes_by_id_left["root"]
+        op_tree_cp = deepcopy(op_tree)
+        op_tree_cp.set_humn((humn_left + humn_right) // 2)
+        op_tree_cp.eval(op_tree_cp.root)
 
-        elif nodes_by_id_center[root_node_center.left].value < nodes_by_id_center[root_node_center.right].value:
-            nodes_by_id_right = nodes_by_id_center
-            root_node_right = nodes_by_id_right["root"]
-
-        nodes_by_id_center = deepcopy(nodes_by_id)
-        nodes_by_id_center["humn"].value = (nodes_by_id_left["humn"].value + nodes_by_id_right["humn"].value) // 2
-        root_node_center = nodes_by_id_center["root"]
-        root_node_center.eval(nodes_by_id_center)
-
-    print(nodes_by_id_center["humn"].value)
+    print(op_tree_cp.get_humn().value)

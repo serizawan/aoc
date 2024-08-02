@@ -38,7 +38,7 @@ def dfs(bp, maxspend, cache, time, bots, amt):
                 amt_[i] = min(amt_[i], maxspend[i] * remtime)
             maxval = max(maxval, dfs(bp, maxspend, cache, remtime, bots_, amt_))
 
-    # cache[key] = maxval
+    cache[key] = maxval
     return maxval
 
 
