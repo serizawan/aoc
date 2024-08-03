@@ -7,17 +7,19 @@ import sys
 
 ALLOCATED_TIME = 24
 
-
 """
 This version simulates geode productions for all possible permutations of buildable robots sets (in the allocated time)
-using a DFS algorithm. A caching mechanism allows to improve performances by preventing the DFS from exploring known
+using a DFS algorithm. A couple of optimization have been made to improve the brute-force performances:
+    - A caching mechanism allows to improve performances by preventing the DFS from exploring known
 states.
-
-Despite some thresholds have been put on the number of buildable robots per type have been set (example: Considering the
+    - A resource optimization allows to hit the cache more frequently without affecting the result. 
+    - Thresholds have been put on the number of buildable robots per type (example: Considering the
 Ore robot costs in the input blueprints, it never makes sense to build more than 4 Ore robots to reach the maximum geode
 production as no robots costs more than 4 ores. Having more Ore robots would spoil resources with over-production of 
-this metal), the computation is longer than the expected problem time (up to a few minutes) but it is still computable
-in a few hours.
+this metal).
+
+With these improvements, the computation time is around a copule of minutes (which is still high compared to the 
+expectations given by the website).
 """
 
 
@@ -115,13 +117,22 @@ class RobotFactory:
 
         while remaining_time:
             remaining_time -= 1
+            # Note that we could calculate the exact waiting time before producing a new robot without iterating 1 by 1.
             if self.has_enough(self.next_robot_type_to_make):
                 robot = self.make(self.next_robot_type_to_make)
                 self.resources.add(self.robots.produce())
                 self.robots.robots_set.add(robot)
                 for robot_type in RobotTypes:
-                    if self.robots.count(robot_type) >= RobotTypes.get_robot_class_from_robot_type(robot_type).MAX_ROBOT_COUNT:
+                    if self.robots.count(robot_type) >= RobotTypes.get_robot_class_from_robot_type(robot_type).max_robot_count:
                         continue
+                    # We can "throw" extra stock of a given resource when we have "too much" ("too much" means more
+                    # than we would need if we had to spend the maximum resource cost on each time tick). This stock
+                    # adjustement doesn't affect production (as we spoil only unspendable stock) but improve cache hitting
+                    # and hence performance.
+                    for i in range(3):
+                        self.resources.ore_stock = min(self.resources.ore_stock, max_ore_cost * remaining_time)
+                        self.resources.clay_stock = min(self.resources.clay_stock, max_clay_cost * remaining_time)
+                        self.resources.obsidian_stock = min(self.resources.obsidian_stock, max_obsidian_cost * remaining_time)
                     robot_factory = deepcopy(self)
                     robot_factory.next_robot_type_to_make = robot_type
                     max_geode_stock = max(robot_factory.resources.geode_stock, max_geode_stock)
@@ -131,7 +142,8 @@ class RobotFactory:
                 self.resources.add(self.robots.produce())
 
         max_geode_stock = max(self.resources.geode_stock, max_geode_stock)
-        cache[key] = max_geode_stock
+        if key[0] > 0:
+            cache[key] = max_geode_stock
         return max_geode_stock
 
 
@@ -160,7 +172,7 @@ class Resources:
 
 
 class Robot:
-    MAX_ROBOT_COUNT = math.inf
+    max_robot_count = math.inf
 
     def __init__(self, robot_id):
         self.robot_id = robot_id
@@ -174,7 +186,7 @@ class Robot:
 
 class OreRobot(Robot):
     ORE_PRODUCTION = 1
-    MAX_ROBOT_COUNT = 4
+    max_robot_count = math.inf
 
     def produce(self):
         return Resources(self.ORE_PRODUCTION, 0, 0, 0)
@@ -182,7 +194,7 @@ class OreRobot(Robot):
 
 class ClayRobot(Robot):
     CLAY_PRODUCTION = 1
-    MAX_ROBOT_COUNT = math.inf
+    max_robot_count = math.inf
 
     def produce(self):
         return Resources(0, self.CLAY_PRODUCTION, 0, 0)
@@ -190,7 +202,7 @@ class ClayRobot(Robot):
 
 class ObsidianRobot(Robot):
     OBSIDIAN_PRODUCTION = 1
-    MAX_ROBOT_COUNT = math.inf
+    max_robot_count = math.inf
 
     def produce(self):
         return Resources(0, 0, self.OBSIDIAN_PRODUCTION, 0)
@@ -254,6 +266,8 @@ if __name__ == "__main__":
         blueprint_id, *costs = re.findall(r"\d+", line)
         costs = [int(cost) for cost in costs]
         remaining_time = ALLOCATED_TIME
+        max_ore_cost, max_clay_cost, max_obsidian_cost = max(costs[0], costs[1], costs[2], costs[4]), costs[3], costs[5]
+        OreRobot.max_robot_count, ClayRobot.max_robot_count, ObsidianRobot.max_robot_count = max_ore_cost, max_clay_cost, max_obsidian_cost
         blue_print = BluePrint(
             blueprint_id,
             Cost(costs[0], 0, 0, 0),
@@ -268,7 +282,8 @@ if __name__ == "__main__":
             Resources(0, 0, 0, 0),
             None,
         )
-        max_geode_stock = robot_factory.simulate(ALLOCATED_TIME, 0, {})
+        cache = {}
+        max_geode_stock = robot_factory.simulate(ALLOCATED_TIME, 0, cache)
         result += int(blueprint_id) * max_geode_stock
 
     print(result)
