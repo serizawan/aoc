@@ -1,15 +1,15 @@
-# Advent of Code
+# My Advent of Code Python Solution Scripts
 
-My solution scripts for the [advent of code](https://adventofcode.com/) problems.
+This repository stores my solution scripts for the [advent of code](https://adventofcode.com/) problems.
 
-For year U (format YYYY), problem V (two digits format, padded with zeroes XX), you can run the solution script of part W (a or b) with:
+For year Y (4 digits format), day D (two digits format, padded with zeroes), you can run the solution script of part P (a or b) with:
 ```
-python U/pV/pVW.py U/pV/in.txt
+python Y/pD/pDP.py < Y/pD/in.txt
 ```
 
-For example, for problem 1 of year 2022 part A:
+For example, for problem 3 of year 2024 part b:
 ```
-python 2022/p01/p1a.py 2022/p01/in.txt
+python 2024/p03/p03b.py < 2024/p03/in.txt
 ```
 
 Tested with:
@@ -17,3 +17,4 @@ Tested with:
 - 2020: Python 3.8
 - 2021: Python 3.9.1
 - 2022: Python 3.9.1
+- 2024: Python 3.12.4
