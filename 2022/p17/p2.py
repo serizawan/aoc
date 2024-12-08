@@ -9,7 +9,7 @@ N_ROCKS = 1000000000000
 # The first 20 lines shall be adequate to identify a period signature and identify the period length.
 # Note that taking X top lines may lead to an incomplete pattern (hence none periodic), as it may be incomplete because
 # future rocks would affect the X top lines.
-# This parametrization works also for sample.txt
+# This parametrization works also for in_sample.txt
 N_ROCKS_PERIOD = 8250
 N_SIGNATURE_PERIOD = 20
 
