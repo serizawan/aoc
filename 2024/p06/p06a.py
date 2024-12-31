@@ -29,8 +29,6 @@ if __name__ == "__main__":
             if c == "X":
                 count += 1
 
-    for line in map:
-        print(''.join(line))
     print(count)
 
 
