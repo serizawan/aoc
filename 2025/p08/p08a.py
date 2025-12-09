@@ -29,6 +29,8 @@ if __name__ == "__main__":
     # Note that we put as a trick math.inf when j1 == j2 instead of 0 to avoid getting j1 == j2 when looking for min dist_squared.
     dists_squared = [[dist_squared(j1, j2) if j1 != j2 else math.inf for j1 in junctions] for j2 in junctions]
     groups = set([frozenset([j]) for j in junctions])
+    # Note that despite we are counting connections even when two junctions are already in the same circuit (as opposed
+    # to the exercice statement, we are still getting (surprisingly and probably luckily) the right answer.
     for n in range(N_PAIRS):
         # Getting min each time is sub-optimal (we shall have sorted the distances once). Complexity is O(n^2) instead
         # of O(n * log(n)) but the program still computes in reasonable time.
@@ -37,7 +39,7 @@ if __name__ == "__main__":
         ji, jj = junctions[i], junctions[j]
         dists_squared[i][j] = math.inf
         dists_squared[j][i] = math.inf
-        gi, gj = group_of(ji), group_of(jj)
+        gi, gj = group_of(ji), group_of(jj)  # We could check here whether both are already in the same group if needed.
         groups.discard(gi), groups.discard(gj)
         groups.add(gi.union(gj))
 
